@@ -1,0 +1,48 @@
+# UE4SS on Alchemy Factory
+
+Verified facts about running UE4SS with the game. Game 1.1.5023, checked on 2026-10-20 unless noted.
+
+## Which build works
+
+- The game runs on Unreal Engine 5.7 (UE4SS log: `Found EngineVersion: 5.7`). Only UE4SS's experimental build supports it.
+- Build used: `UE4SS_v3.0.1-1181-g83330635.zip` from the official release `experimental-latest` of `https://github.com/UE4SS-RE/RE-UE4SS`.
+  - Size 8,748,315 bytes, SHA-256 `b9a166a756605b21058a64cde93bcaab1a855dba3553e5c7e6ce0fa8fdfad7b9`.
+  - Loaded the game, ran Lua mods, key binds and the dumpers without errors.
+- `experimental-latest` is a rolling release: its files are replaced in place. Build `v3.0.1-1142` (used for the first `.usmap` dump) was replaced by 1181 on 2026-10-17 and is no longer downloadable. A pinned file can therefore disappear. GitHub's release API publishes a SHA-256 `digest` for each file of this release, which the installer can use. How to pin is still an open decision for the installer.
+
+## Install layout
+
+Everything goes in `<game>\AlchemyFactory\Binaries\Win64\`, where `<game>` is the Steam install folder (for example `C:\Program Files (x86)\Steam\steamapps\common\Alchemy Factory`):
+
+| Path | What |
+|---|---|
+| `dwmapi.dll` | Proxy DLL that loads UE4SS when the game starts. |
+| `ue4ss\UE4SS.dll`, `ue4ss\UE4SS-settings.ini` | UE4SS and its settings. |
+| `ue4ss\Mods\` | Lua mods, plus `mods.txt` and `mods.json`. |
+| `ue4ss\UE4SS.log` | Log, rewritten on every start. Lua `print` output lands here. |
+
+- The `Win64` folder is writable without administrator rights in a default Steam install.
+- The game must be closed to install or update: the DLL is only loaded at start.
+- To remove: delete `dwmapi.dll` and `ue4ss\`, or use Steam's "Verify integrity of game files".
+
+## Settings used for development
+
+Changes from the build's default `UE4SS-settings.ini`: `ConsoleEnabled = 1`, `GuiConsoleEnabled = 1`, `GuiConsoleVisible = 1` (the UE4SS window with Live View and Dumpers) and `GraphicsAPI = dx11`. Players don't need the window; the installer should decide its own defaults.
+
+`[Overrides] ModsFolderPath` exists in the settings file. Its behaviour has not been tested.
+
+## Registering a Lua mod
+
+- Layout: `ue4ss\Mods\<Name>\Scripts\main.lua`.
+- Enabled with a `<Name> : 1` line in `mods.txt`, placed above the built-in `Keybinds` line. Verified: a mod registered this way loads.
+- The build also ships `mods.json` with the same list. UE4SS's main-branch source doesn't seem to read it (not verified against the 1181 binary); during testing it was kept in sync with `mods.txt`.
+- An empty `enabled.txt` inside the mod folder is the other documented way to enable a mod. Not tested here.
+
+## Dumpers
+
+From the UE4SS window, Dumpers tab:
+
+- **Dump CXX Headers** writes `ue4ss\CXXHeaderDump\` (967 files for 1.1.5023). The game's own native module is `BeltTD.hpp`; Blueprints are `BP_*.hpp` and widgets `WBP_*.hpp`.
+- **Generate Lua Types** writes `ue4ss\Mods\shared\types\`, Lua annotations for the Lua Language Server.
+
+Both are generated from the running game and belong to the game: never commit them.
