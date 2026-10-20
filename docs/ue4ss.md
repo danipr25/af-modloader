@@ -35,8 +35,8 @@ Changes from the build's default `UE4SS-settings.ini`: `ConsoleEnabled = 1`, `Gu
 
 - Layout: `ue4ss\Mods\<Name>\Scripts\main.lua`.
 - Enabled with a `<Name> : 1` line in `mods.txt`, placed above the built-in `Keybinds` line. Verified: a mod registered this way loads.
-- The build also ships `mods.json` with the same list. UE4SS's main-branch source doesn't seem to read it (not verified against the 1181 binary); during testing it was kept in sync with `mods.txt`.
-- An empty `enabled.txt` inside the mod folder is the other documented way to enable a mod. Not tested here.
+- The build also ships `mods.json` with the same list, but the 1181 `UE4SS.dll` never reads it (searched the binary for the name, ASCII and UTF-16).
+- An empty `enabled.txt` inside the mod folder also enables it, with no `mods.txt` line. Verified in game 2026-10-20: the log shows `Mod 'AFModLoader' has enabled.txt, starting mod.` AF Mod Loader uses this, so it never edits `mods.txt`.
 
 ## Dumpers
 
@@ -56,3 +56,12 @@ Checked with an in-game spike on game 1.1.5023.
 - `io.open` fails ("No such file or directory") on a path with non-ASCII characters (tested with a folder named `spike-ñandú`), because UE4SS's Lua uses the ANSI `fopen`. ASCII paths with spaces work.
 - `load(source, chunkname, "t", env)` works, and globals assigned by the chunk stay in `env`.
 - A Lua mod's `main.lua` runs before any game world exists (the game state is not present yet). `RegisterInitGameStatePostHook` fired twice afterwards: once for the menu, then once for the loaded save.
+
+## Lua environment (from the UE4SS source, matching build 1181)
+
+Read in the RE-UE4SS source, not exercised in game:
+
+- `print` adds no newline: every log line must end with `"\n"`, or lines run together in `UE4SS.log`.
+- `ModRef.OnUnload = fn` is a property assignment (a function or nil), not a method. It runs when UE4SS reloads, restarts or uninstalls its mods, and **not** when the game closes.
+- `ModRef`, `RestartCurrentMod`, `UninstallCurrentMod`, `RestartMod`, `UninstallMod` and `ClearAllDelayedActions` act on the UE4SS mod that owns the Lua state. For AF mods that is AFModLoader, so they would affect every AF mod.
+- UE4SS's `require` searches only the owning mod's `Scripts` folder and `Mods/shared`, loads modules in the global environment, and keeps one `package.loaded` for the whole state.

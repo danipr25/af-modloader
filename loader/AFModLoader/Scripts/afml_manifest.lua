@@ -100,8 +100,10 @@ function manifest.validate(data, loaderVersion)
     local message = '"schemaVersion" is %s: this mod needs a newer AF Mod Loader'
       .. " (supports schemaVersion 1, this is loader %s)"
     return nil, { message:format(schema, loaderVersion) }, warnings
-  elseif math.type(schema) ~= "integer" or schema ~= 1 then
+  elseif schema == nil then
     fail('"schemaVersion" is required and must be the number 1')
+  elseif math.type(schema) ~= "integer" or schema ~= 1 then
+    fail('"schemaVersion" must be the number 1')
   end
 
   if not isModId(data.id) then
