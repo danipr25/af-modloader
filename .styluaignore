@@ -1,1 +1,2 @@
 tests/vendor/
+loader/AFModLoader/Scripts/afml_json.lua

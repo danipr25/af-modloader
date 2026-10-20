@@ -46,3 +46,13 @@ From the UE4SS window, Dumpers tab:
 - **Generate Lua Types** writes `ue4ss\Mods\shared\types\`, Lua annotations for the Lua Language Server.
 
 Both are generated from the running game and belong to the game: never commit them.
+
+## Lua environment (verified in game 2026-10-20)
+
+Checked with an in-game spike on game 1.1.5023.
+
+- `IterateGameDirectories()` returns the install root: its own `__absolute_path` is the install folder. Its child keys are `Engine`, `Game` and any other folder there, such as `mods`. `Game` is the project folder and its `__name` is `AlchemyFactory`, so always read `__name`, not the key. `__files` lists files, each with `__name` and `__absolute_path`.
+- `io.open` reads and writes files in `<install>/mods/.data` from the game process, and `os.remove` deletes them, with no admin rights.
+- `io.open` fails ("No such file or directory") on a path with non-ASCII characters (tested with a folder named `spike-ñandú`), because UE4SS's Lua uses the ANSI `fopen`. ASCII paths with spaces work.
+- `load(source, chunkname, "t", env)` works, and globals assigned by the chunk stay in `env`.
+- A Lua mod's `main.lua` runs before any game world exists (the game state is not present yet). `RegisterInitGameStatePostHook` fired twice afterwards: once for the menu, then once for the loaded save.
