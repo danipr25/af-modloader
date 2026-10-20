@@ -13,12 +13,16 @@ local function ids(order)
   return result
 end
 
-local function reasonFor(skipped, id)
+local function entryFor(skipped, id)
   for _, entry in ipairs(skipped) do
     if entry.id == id then
-      return entry.reason
+      return entry
     end
   end
+end
+
+local function reasonFor(skipped, id)
+  return entryFor(skipped, id).reason
 end
 
 return {
@@ -36,6 +40,8 @@ return {
       lu.assertEquals(order, {})
       lu.assertStrContains(reasonFor(skipped, "a"), "ghost")
       lu.assertStrContains(reasonFor(skipped, "a"), "not installed")
+      lu.assertEquals(entryFor(skipped, "a").kind, "missing")
+      lu.assertEquals(entryFor(skipped, "a").dep, "ghost")
     end,
 
     testVersionOutsideRangeIsSkipped = function()
@@ -49,6 +55,8 @@ return {
       lu.assertStrContains(reasonFor(skipped, "a"), ">=2.0.0")
       lu.assertStrContains(reasonFor(skipped, "a"), "1.5.0")
       lu.assertStrContains(reasonFor(skipped, "c"), "0.1.0")
+      lu.assertEquals(entryFor(skipped, "a").kind, "version")
+      lu.assertEquals(entryFor(skipped, "a").installed, "1.5.0")
     end,
 
     testSkipIsTransitive = function()
@@ -60,6 +68,9 @@ return {
       local order, skipped = resolve.resolve(candidates, "0.1.0")
       lu.assertEquals(order, {})
       lu.assertEquals(#skipped, 3)
+      lu.assertEquals(entryFor(skipped, "c").kind, "missing")
+      lu.assertEquals(entryFor(skipped, "b").kind, "skipped-dependency")
+      lu.assertEquals(entryFor(skipped, "a").kind, "skipped-dependency")
     end,
 
     testCycleSkipsItsMembersAndDependents = function()
@@ -74,6 +85,8 @@ return {
       lu.assertEquals(#skipped, 3)
       lu.assertStrContains(reasonFor(skipped, "a"), "a -> b -> a")
       lu.assertStrContains(reasonFor(skipped, "b"), "b -> a -> b")
+      lu.assertEquals(entryFor(skipped, "a").kind, "cycle")
+      lu.assertEquals(entryFor(skipped, "d").kind, "skipped-dependency")
     end,
 
     testDuplicateIdSkipsEveryFolder = function()
@@ -84,6 +97,7 @@ return {
       lu.assertEquals(#skipped, 3)
       lu.assertStrContains(skipped[1].reason, "first")
       lu.assertStrContains(skipped[1].reason, "second")
+      lu.assertEquals(skipped[1].kind, "duplicate")
     end,
   },
 }

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-child",
+  "version": "1.0.0",
+  "name": "Sample Child",
+  "depends": { "sample-base": ">=1.0.0" }
+}

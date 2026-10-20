@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-cycle-a",
+  "version": "1.0.0",
+  "name": "Sample Cycle A",
+  "depends": { "sample-cycle-b": "*" }
+}

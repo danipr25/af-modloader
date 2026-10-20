@@ -15,14 +15,20 @@ local function sortedKeys(tbl)
 end
 
 -- candidates: list of { manifest, folder }. Returns order (candidates in load order) and
--- skipped (list of { folder, id, reason }).
+-- skipped (list of { folder, id, reason, kind }). kind is one of "duplicate", "missing", "version",
+-- "skipped-dependency" or "cycle". For "missing", "version" and "skipped-dependency" the entry also has
+-- dep (the id needed) and range; for "version" it also has installed (the version found).
 function resolve.resolve(candidates, loaderVersion)
   local skipped = {}
   local skippedIds = {}
   local active = {} -- id -> candidate
 
-  local function skip(candidate, reason)
-    skipped[#skipped + 1] = { folder = candidate.folder, id = candidate.manifest.id, reason = reason }
+  local function skip(candidate, reason, kind, extra)
+    local entry = { folder = candidate.folder, id = candidate.manifest.id, reason = reason, kind = kind }
+    for key, value in pairs(extra or {}) do
+      entry[key] = value
+    end
+    skipped[#skipped + 1] = entry
     skippedIds[candidate.manifest.id] = true
   end
 
@@ -45,7 +51,7 @@ function resolve.resolve(candidates, loaderVersion)
       table.sort(folders)
       local reason = 'the id "' .. id .. '" is used by several mods (folders ' .. table.concat(folders, ", ") .. ")"
       for _, candidate in ipairs(group) do
-        skip(candidate, reason)
+        skip(candidate, reason, "duplicate")
       end
     end
   end
@@ -63,16 +69,17 @@ function resolve.resolve(candidates, loaderVersion)
           if depId ~= BUILTIN_ID then
             installed = active[depId] and active[depId].manifest.version
           end
-          local reason
+          local reason, kind
           if not installed and skippedIds[depId] then
-            reason = 'needs "' .. depId .. '", which is skipped'
+            reason, kind = 'needs "' .. depId .. '", which is skipped', "skipped-dependency"
           elseif not installed then
-            reason = 'needs "' .. depId .. '" (' .. range .. "), which is not installed"
+            reason, kind = 'needs "' .. depId .. '" (' .. range .. "), which is not installed", "missing"
           elseif not semver.satisfies(installed, range) then
             reason = 'needs "' .. depId .. '" ' .. range .. ", but " .. installed .. " is installed"
+            kind = "version"
           end
           if reason then
-            skip(active[id], reason)
+            skip(active[id], reason, kind, { dep = depId, range = range, installed = installed })
             active[id] = nil
             changed = true
             break
@@ -132,7 +139,7 @@ function resolve.resolve(candidates, loaderVersion)
     end
   end
   for _, id in ipairs(sortedKeys(cycles)) do
-    skip(active[id], cycles[id])
+    skip(active[id], cycles[id], "cycle")
     active[id] = nil
   end
   dropUnsatisfied()
