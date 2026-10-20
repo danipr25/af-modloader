@@ -5,10 +5,14 @@ Verified facts about running UE4SS with the game. Game 1.1.5023, checked on 2026
 ## Which build works
 
 - The game runs on Unreal Engine 5.7 (UE4SS log: `Found EngineVersion: 5.7`). Only UE4SS's experimental build supports it.
-- Build used: `UE4SS_v3.0.1-1181-g83330635.zip` from the official release `experimental-latest` of `https://github.com/UE4SS-RE/RE-UE4SS`.
+- Build used: `UE4SS_v3.0.1-1181-g83330635.zip`, pinned by the installer.
+  - URL: `https://github.com/UE4SS-RE/RE-UE4SS/releases/download/experimental/UE4SS_v3.0.1-1181-g83330635.zip`
   - Size 8,748,315 bytes, SHA-256 `b9a166a756605b21058a64cde93bcaab1a855dba3553e5c7e6ce0fa8fdfad7b9`.
   - Loaded the game, ran Lua mods, key binds and the dumpers without errors.
-- `experimental-latest` is a rolling release: its files are replaced in place. Build `v3.0.1-1142` (used for the first `.usmap` dump) was replaced by 1181 on 2026-10-17 and is no longer downloadable. A pinned file can therefore disappear. GitHub's release API publishes a SHA-256 `digest` for each file of this release, which the installer can use. How to pin is still an open decision for the installer.
+- Where builds live (checked 2026-10-20):
+  - `experimental-latest` is a rolling release: its files are replaced in place by each new build, so an old build disappears from it. Build `v3.0.1-1142` (used for the first `.usmap` dump) was replaced by 1181 there on 2026-10-17.
+  - `experimental` is the archive release: it keeps the old builds, which is why the installer pins a file from it. It held 973 assets, close to GitHub's limit of about 1000 assets per release. If UE4SS's maintainers prune it to make room, a pinned build could be deleted someday: the installer then gets HTTP 404, tells the player a newer installer is needed, and installs nothing. A new installer then pins a newer build (its own reviewed change, re-tested in game).
+  - GitHub's release API publishes a SHA-256 `digest` for each file, but the installer does not use it: the pinned hash is fixed in `installer/AFModLoader.Installer/Core/Ue4ssPin.cs`.
 
 ## Install layout
 
@@ -27,7 +31,7 @@ Everything goes in `<game>\AlchemyFactory\Binaries\Win64\`, where `<game>` is th
 
 ## Settings used for development
 
-Changes from the build's default `UE4SS-settings.ini`: `ConsoleEnabled = 1`, `GuiConsoleEnabled = 1`, `GuiConsoleVisible = 1` (the UE4SS window with Live View and Dumpers) and `GraphicsAPI = dx11`. Players don't need the window; the installer should decide its own defaults.
+Changes from the build's default `UE4SS-settings.ini`: `ConsoleEnabled = 1`, `GuiConsoleEnabled = 1`, `GuiConsoleVisible = 1` (the UE4SS window with Live View and Dumpers) and `GraphicsAPI = dx11`. Players don't need the window: the installer keeps the build's defaults, and sets these values only if the player ticks the console option (all four keys are in the `[Debug]` section).
 
 `[Overrides] ModsFolderPath` exists in the settings file. Its behaviour has not been tested.
 
@@ -36,7 +40,7 @@ Changes from the build's default `UE4SS-settings.ini`: `ConsoleEnabled = 1`, `Gu
 - Layout: `ue4ss\Mods\<Name>\Scripts\main.lua`.
 - Enabled with a `<Name> : 1` line in `mods.txt`, placed above the built-in `Keybinds` line. Verified: a mod registered this way loads.
 - The build also ships `mods.json` with the same list, but the 1181 `UE4SS.dll` never reads it (searched the binary for the name, ASCII and UTF-16).
-- An empty `enabled.txt` inside the mod folder also enables it, with no `mods.txt` line. Verified in game 2026-10-20: the log shows `Mod 'AFModLoader' has enabled.txt, starting mod.` AF Mod Loader uses this, so it never edits `mods.txt`.
+- An empty `enabled.txt` inside the mod folder also enables it, with no `mods.txt` line. Verified in game 2026-10-20: the log shows `Mod 'AFModLoader' has enabled.txt, starting mod.` AF Mod Loader uses this, so it never edits `mods.txt`. Also verified 2026-10-20 with the layout the installer creates, which has no `mods.txt` at all: UE4SS logs `Starting mods (from enabled.txt ...)` and starts the loader, and after Remove no file UE4SS created was left besides its log.
 
 ## Dumpers
 

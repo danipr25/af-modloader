@@ -17,3 +17,7 @@ Thumbs.db
 # Claude Code local files
 .claude/worktrees/
 .claude/settings.local.json
+
+# .NET build output
+bin/
+obj/

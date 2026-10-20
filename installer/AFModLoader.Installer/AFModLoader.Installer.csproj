@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AFModLoader.Installer</RootNamespace>
+    <AssemblyName>AFModLoader-Installer</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.0.0</Version>
+    <Product>AF Mod Loader installer</Product>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+  </PropertyGroup>
+
+  <!-- No debug symbols in Release, and no absolute paths in the exe. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PathMap>$(MSBuildProjectDirectory)=AFModLoader.Installer</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <!-- The loader files are embedded as they are in loader/AFModLoader, under the resource name loader/<relative path>. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\loader\AFModLoader\**\*" Exclude="..\..\loader\AFModLoader\**\.DS_Store">
+      <LogicalName>loader/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      <Link>Embedded\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
