@@ -1,7 +1,7 @@
 -- AF Mod Loader entry point. UE4SS runs this when the game starts, before any world exists.
 -- It finds the mods in the game's "mods" folder, checks them, and runs each one right away (so a mod can register
 -- its hooks early). The logic lives in the afml_* modules: this file only connects them to UE4SS.
-local LOADER_VERSION = "0.1.0"
+local LOADER_VERSION = "0.1.1"
 
 local json = require("afml_json")
 local manifest = require("afml_manifest")
