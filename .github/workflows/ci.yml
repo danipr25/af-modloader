@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: windows-latest
+    env:
+      # The installer's NuGet packages must match the committed packages.lock.json files.
+      RestoreLockedMode: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: ./.github/actions/setup-tools
+      - name: Checks (format, lint, tests, installer)
+        run: lua scripts/check.lua
+      - name: Build the installer
+        run: lua scripts/build-installer.lua

@@ -117,4 +117,4 @@ Expected: `8748315` and `b9a166a756605b21058a64cde93bcaab1a855dba3553e5c7e6ce0fa
 
 ## Warnings from Windows
 
-The exe is not code-signed yet, so SmartScreen may say it is an unknown app, and some antivirus programs are cautious about programs that download a file and place a DLL. The source is in this repository and releases will come with checksums.
+The exe is not code-signed yet, so SmartScreen may say it is an unknown app, and some antivirus programs are cautious about programs that download a file and place a DLL. The source is in this repository. Each release lists the SHA-256 of the exe in `SHA256SUMS.txt`, and GitHub Actions builds the exe and attests it, so you can check where it came from (see the README).

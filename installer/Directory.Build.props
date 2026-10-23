@@ -11,4 +11,10 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- The .NET Framework 4.8 reference assemblies, as a build-time package. The SDK only adds it on its own when the
+         targeting pack is missing, so without this line machines with and without the pack disagree with the lock
+         files. Nothing from it goes into the exe. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
