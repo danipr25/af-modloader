@@ -48,7 +48,7 @@ Work reaches `development` by pull request, and CI (the `check` job, the same as
 
 1. On `development`, set the new version (`LOADER_VERSION` in `loader/AFModLoader/Scripts/main.lua`) and write its section in [CHANGELOG.md](CHANGELOG.md).
 2. Open a pull request from `development` into `main` and merge it. `main` accepts nothing else.
-3. Tag the merge commit `vX.Y.Z` (the version) on `main` and push the tag. The [release workflow](.github/workflows/release.yml) checks that the commit is on `main` and that the tag matches the code, runs the checks, builds the installer exe, attests it and publishes a GitHub release with the CHANGELOG section as notes. Versions before 1.0 are marked as pre-releases.
+3. Tag the merge commit `vX.Y.Z` (the version) on `main` and push the tag. The [release workflow](.github/workflows/release.yml) checks that the commit is on `main` and that the tag matches the code, runs the checks, builds the installer exe, attests it and publishes a GitHub release with the CHANGELOG section as notes.
 
 To rehearse, run the Release workflow by hand from `main` ("Run workflow"): it does everything except the attestation and the release, and keeps the files and notes as a workflow artifact.
 
