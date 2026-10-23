@@ -320,7 +320,9 @@ namespace AFModLoader.Installer
                 return;
             }
 
+            // AllPaintingInWmPaint skips the background pass, so clear it here or old pixels stay visible.
             Graphics g = e.Graphics;
+            g.Clear(BackColor);
             int w = Math.Max(1, DeviceDpi / 96);
             int size = LogicalToDeviceUnits(16);
             int room = 3 * w;

@@ -1043,6 +1043,17 @@ namespace AFModLoader.Installer
             stepLabel.Text = "Starting...";
             SetStatusText(message, null);
             UpdateButtons();
+
+            // The button just clicked is now disabled; without this, focus falls to the folder box and selects the path.
+            if (cancellable)
+            {
+                cancelButton.Focus();
+            }
+            else
+            {
+                ActiveControl = null;
+            }
+
             Tuple<string, string> failure = null;
             ModLoaderInstaller installer = null;
             try
