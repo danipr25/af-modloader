@@ -2,7 +2,7 @@
 
 All notable changes to AF Mod Loader. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). While the version is 0.x, a new minor version may break mods and says how here.
 
-## [Unreleased]
+## [0.1.1] - 2026-10-23
 
 - Installer window redesigned: app icon and name, status icon with a Check again link, one line of progress with the current step (downloading, checking, writing files), and a short result message with what to do next.
 - The main button now says Install, Update to X.Y.Z or Reinstall depending on what is installed.
