@@ -19,7 +19,7 @@ gh attestation verify <file> --repo danipr25/af-modloader --signer-workflow dani
 
 To uninstall, run the installer again and click **Remove**. It deletes only what it installed and keeps `mods`.
 
-The installer needs no administrator rights and writes nothing to the registry. It stops if another UE4SS is already installed. It is not code-signed yet, so Windows SmartScreen may warn about it. Every file it touches is listed in [docs/installer.md](docs/installer.md).
+The installer needs no administrator rights and writes nothing to the registry (it only reads it, to find Steam and to follow the Windows light/dark setting). It stops if another UE4SS is already installed. It is not code-signed yet, so Windows SmartScreen may warn about it. Every file it touches is listed in [docs/installer.md](docs/installer.md).
 
 ## Development
 

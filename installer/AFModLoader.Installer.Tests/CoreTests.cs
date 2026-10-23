@@ -91,8 +91,79 @@ namespace AFModLoader.Installer.Tests
         }
     }
 
+    public class ThemeSettingTests
+    {
+        [Theory]
+        [InlineData(null, true)]
+        [InlineData(0, false)]
+        [InlineData(1, true)]
+        [InlineData("0", true)]
+        public void IsLight_OnlyAZeroDwordMeansDark(object value, bool expected)
+        {
+            Assert.Equal(expected, ThemeSetting.IsLight(value));
+        }
+    }
+
+    public class InstallActionTests
+    {
+        [Theory]
+        [InlineData(null, "0.2.0", InstallAction.Install)]
+        [InlineData("0.1.0", "0.2.0", InstallAction.Update)]
+        [InlineData("0.1.9", "0.1.10", InstallAction.Update)]
+        [InlineData("0.2.0", "0.2.0", InstallAction.Reinstall)]
+        [InlineData("0.3.0", "0.2.0", InstallAction.Reinstall)]
+        [InlineData("not a version", "0.2.0", InstallAction.Reinstall)]
+        [InlineData("0.1.0", "", InstallAction.Reinstall)]
+        public void ChooseAction_FollowsTheVersions(string installed, string current, InstallAction expected)
+        {
+            Assert.Equal(expected, ModLoaderInstaller.ChooseAction(installed, current));
+        }
+
+        [Fact]
+        public void Inspect_ReportsTheFolderAndWhatTheButtonDoes()
+        {
+            using (var game = new FakeGame())
+            {
+                var installer = Fakes.Installer(Fakes.Ue4ssZip(), new List<string>());
+
+                GameStatus before = installer.Inspect(game.Root);
+                Assert.Equal(InstallAction.Install, before.Action);
+                Assert.Equal(game.Root, before.Root);
+                Assert.Equal(Path.Combine(game.Root, "mods"), before.ModsDir);
+
+                installer.Install(game.Root, false);
+                Assert.Equal(InstallAction.Reinstall, installer.Inspect(game.Root).Action);
+
+                Assert.Null(installer.Inspect(Path.Combine(game.TempPath, "nothing here")).Root);
+            }
+        }
+    }
+
     public class InstallTests
     {
+        [Fact]
+        public void InstallThenRemove_ReportsTheStepsInOrder()
+        {
+            using (var game = new FakeGame())
+            {
+                var steps = new List<string>();
+                var installer = new ModLoaderInstaller(Fakes.Options(Fakes.Ue4ssZip()), null, null, steps.Add);
+
+                installer.Install(game.Root, false);
+                Assert.StartsWith("Downloading UE4SS (", steps[0]);
+                Assert.Equal("Checking the download", steps[1]);
+                Assert.Equal(steps.Count - 2, steps.Skip(2).Count(t => t.StartsWith("Writing files (", StringComparison.Ordinal)));
+                Assert.Matches(@"^Writing files \(1 of \d+\)$", steps[2]);
+                Assert.Matches(@"^Writing files \((\d+) of \1\)$", steps[steps.Count - 1]);
+
+                steps.Clear();
+                installer.Remove(game.Root);
+                Assert.NotEmpty(steps);
+                Assert.Matches(@"^Removing files \(1 of \d+\)$", steps[0]);
+                Assert.Matches(@"^Removing files \((\d+) of \1\)$", steps[steps.Count - 1]);
+            }
+        }
+
         [Fact]
         public void InstallThenRemove_LeavesOnlyTheGameAndTheModsFolder()
         {
@@ -130,6 +201,29 @@ namespace AFModLoader.Installer.Tests
                     },
                     game.Files());
                 Assert.Equal(StatusKind.NotInstalled, installer.Inspect(game.Root).Kind);
+            }
+        }
+
+        [Fact]
+        public void Install_CancelledBeforeTheDownload_ChangesNothing()
+        {
+            using (var game = new FakeGame())
+            {
+                byte[] zip = Fakes.Ue4ssZip();
+                var downloader = new FakeDownloader(zip);
+                InstallerOptions options = Fakes.Options(zip);
+                options.Downloader = downloader;
+                var installer = new ModLoaderInstaller(options, null, null);
+                List<string> before = game.Files();
+                var cancelled = new System.Threading.CancellationTokenSource();
+                cancelled.Cancel();
+
+                InstallerException error = Assert.Throws<InstallerException>(() => installer.Install(game.Root, false, cancelled.Token));
+
+                Assert.StartsWith("Cancelled.", error.Message);
+                Assert.True(installer.WasCancelled);
+                Assert.Equal(0, downloader.Calls);
+                Assert.Equal(before, game.Files());
             }
         }
 
@@ -313,7 +407,10 @@ namespace AFModLoader.Installer.Tests
                 File.WriteAllText(dwmapi, "someone else's");
                 var installer = Fakes.Installer(Fakes.Ue4ssZip(), new List<string>());
 
-                Assert.Equal(StatusKind.Foreign, installer.Inspect(game.Root).Kind);
+                GameStatus foreign = installer.Inspect(game.Root);
+                Assert.Equal(StatusKind.Foreign, foreign.Kind);
+                Assert.Equal("Another UE4SS is in this game", foreign.Title);
+                Assert.Equal(2, foreign.Detail.Split(new[] { game.Win64 }, StringSplitOptions.None).Length);
                 Assert.Throws<InstallerException>(() => installer.Install(game.Root, false));
                 Assert.Throws<InstallerException>(() => installer.Remove(game.Root));
                 Assert.Equal("someone else's", File.ReadAllText(dwmapi));
