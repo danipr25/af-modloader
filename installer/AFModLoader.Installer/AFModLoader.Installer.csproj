@@ -6,6 +6,7 @@
     <RootNamespace>AFModLoader.Installer</RootNamespace>
     <AssemblyName>AFModLoader-Installer</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <Version>0.0.0</Version>
     <Product>AF Mod Loader installer</Product>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -23,6 +24,11 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <!-- The window icon is read from the exe at run time (the .ico has several sizes), see scripts/make-icon.mjs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
   </ItemGroup>
 
   <!-- The loader files are embedded as they are in loader/AFModLoader, under the resource name loader/<relative path>. -->

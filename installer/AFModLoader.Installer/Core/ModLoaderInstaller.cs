@@ -18,18 +18,44 @@ namespace AFModLoader.Installer.Core
         FolderProblem,
     }
 
+    /// <summary>What the main button does for the inspected folder.</summary>
+    public enum InstallAction
+    {
+        Install,
+        Update,
+        Reinstall,
+    }
+
     public sealed class GameStatus
     {
         public StatusKind Kind { get; set; }
 
-        /// <summary>One line for the status field.</summary>
-        public string Message { get; set; }
+        /// <summary>A short headline for the status field, for example "Not installed".</summary>
+        public string Title { get; set; }
+
+        /// <summary>What to know or do about it, in plain words. Empty when the title says it all.</summary>
+        public string Detail { get; set; }
+
+        /// <summary>Title and detail as one text.</summary>
+        public string Message
+        {
+            get { return string.IsNullOrEmpty(Detail) ? Title : Title + ". " + Detail; }
+        }
 
         /// <summary>Set when this installer's install list was found and read.</summary>
         public InstallManifest Manifest { get; set; }
 
         /// <summary>Whether the console windows are on in UE4SS-settings.ini (false when there is no file).</summary>
         public bool ConsoleEnabled { get; set; }
+
+        /// <summary>The game folder that was inspected, when it is a game folder (null when it is not).</summary>
+        public string Root { get; set; }
+
+        /// <summary>The mods folder of that game (it may not exist yet).</summary>
+        public string ModsDir { get; set; }
+
+        /// <summary>Install when there is no install list, Update when this installer is newer, else Reinstall.</summary>
+        public InstallAction Action { get; set; }
     }
 
     /// <summary>What a run of the installer can be told, mostly so tests can replace the network and the game.</summary>
@@ -57,16 +83,43 @@ namespace AFModLoader.Installer.Core
         private readonly InstallerOptions options;
         private readonly Action<string> log;
         private readonly Action<int> progress;
+        private readonly Action<string> step;
         private volatile bool canCancel;
 
-        public ModLoaderInstaller(InstallerOptions options, Action<string> log, Action<int> progress)
+        public ModLoaderInstaller(InstallerOptions options, Action<string> log, Action<int> progress, Action<string> step = null)
         {
             this.options = options;
             this.log = log ?? (_ => { });
             this.progress = progress ?? (_ => { });
+            this.step = step ?? (_ => { });
         }
 
-        /// <summary>True while a running install can still be cancelled (before the download is verified).</summary>
+        /// <summary>
+        /// What the main button should do. installed is the version in the install list (null when there is none), current
+        /// is this installer's. A version that cannot be read, or a newer installed one, means Reinstall.
+        /// </summary>
+        public static InstallAction ChooseAction(string installed, string current)
+        {
+            if (installed == null)
+            {
+                return InstallAction.Install;
+            }
+
+            Version installedVersion;
+            Version currentVersion;
+            if (Version.TryParse(installed, out installedVersion) && Version.TryParse(current, out currentVersion)
+                && installedVersion < currentVersion)
+            {
+                return InstallAction.Update;
+            }
+
+            return InstallAction.Reinstall;
+        }
+
+        /// <summary>True when the last Install ended because it was cancelled.</summary>
+        public bool WasCancelled { get; private set; }
+
+        /// <summary>True while a running install can still be cancelled (nothing is written before the download is verified).</summary>
         public bool CanCancel
         {
             get { return canCancel; }
@@ -84,13 +137,24 @@ namespace AFModLoader.Installer.Core
                 return new GameStatus
                 {
                     Kind = StatusKind.FolderProblem,
-                    Message = "Could not read the game folder (" + ex.Message + "). Close other programs that may use it and try again.",
+                    Title = "Could not read the game folder",
+                    Detail = ex.Message + " Close other programs that may use it and try again.",
                 };
             }
         }
 
         private GameStatus InspectCore(string root)
         {
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return new GameStatus
+                {
+                    Kind = StatusKind.FolderProblem,
+                    Title = "Choose the Alchemy Factory folder",
+                    Detail = "Type its path above or click Browse.",
+                };
+            }
+
             GameFolder game;
             try
             {
@@ -98,7 +162,7 @@ namespace AFModLoader.Installer.Core
             }
             catch (InstallerException ex)
             {
-                return new GameStatus { Kind = StatusKind.FolderProblem, Message = ex.Message };
+                return new GameStatus { Kind = StatusKind.FolderProblem, Title = "This folder cannot be used", Detail = ex.Message };
             }
 
             InstallManifest manifest = null;
@@ -107,12 +171,12 @@ namespace AFModLoader.Installer.Core
                 manifest = game.ReadManifest();
                 if (manifest == null)
                 {
-                    return new GameStatus
-                    {
-                        Kind = StatusKind.Foreign,
-                        Message = "The install list in this game cannot be read, so the installer will not touch it. "
-                            + "Delete dwmapi.dll and the ue4ss folder in " + game.Win64 + " by hand to start clean.",
-                    };
+                    return Problem(
+                        StatusKind.Foreign,
+                        game,
+                        "The install list cannot be read",
+                        "The installer will not touch this game. Delete dwmapi.dll and the ue4ss folder in " + game.Win64
+                        + " by hand to start clean.");
                 }
             }
             else
@@ -120,21 +184,27 @@ namespace AFModLoader.Installer.Core
                 string found;
                 if (game.HasForeignUe4ss(out found))
                 {
-                    return new GameStatus { Kind = StatusKind.Foreign, Message = ForeignMessage(found, game) };
+                    return Problem(StatusKind.Foreign, game, "Another UE4SS is in this game", ForeignDetail(found, game));
                 }
 
                 if (!GameFolder.IsAscii(game.Root))
                 {
-                    return new GameStatus
-                    {
-                        Kind = StatusKind.FolderProblem,
-                        Message = "The game folder path has letters like n with a tilde or accents, which mods cannot read. "
-                            + "Move the Steam library to a folder with plain English letters, digits and symbols only.",
-                    };
+                    return Problem(
+                        StatusKind.FolderProblem,
+                        game,
+                        "The game folder path has letters mods cannot read",
+                        "Letters like n with a tilde or accents are a problem. "
+                        + "Move the Steam library to a folder with plain English letters, digits and symbols only.");
                 }
             }
 
-            var status = new GameStatus { Manifest = manifest };
+            var status = new GameStatus
+            {
+                Manifest = manifest,
+                Root = game.Root,
+                ModsDir = game.ModsDir,
+                Action = ChooseAction(manifest == null ? null : manifest.InstallerVersion, options.Version),
+            };
             if (File.Exists(game.Settings))
             {
                 status.ConsoleEnabled = ConsoleSetting.IsEnabled(File.ReadAllText(game.Settings));
@@ -143,17 +213,18 @@ namespace AFModLoader.Installer.Core
             if (options.IsGameRunning() || game.IsDllLocked())
             {
                 status.Kind = StatusKind.Running;
-                status.Message = "Alchemy Factory is running. Close the game, then try again.";
+                status.Title = "Alchemy Factory is running";
+                status.Detail = "Close the game, then try again.";
             }
             else if (manifest != null)
             {
                 status.Kind = StatusKind.Installed;
-                status.Message = "Installed: AF Mod Loader " + manifest.InstallerVersion + " (UE4SS " + manifest.Ue4ssBuild + ")";
+                status.Title = "Installed: AF Mod Loader " + manifest.InstallerVersion + " (UE4SS " + manifest.Ue4ssBuild + ")";
             }
             else
             {
                 status.Kind = StatusKind.NotInstalled;
-                status.Message = "Not installed";
+                status.Title = "Not installed";
             }
 
             return status;
@@ -172,7 +243,8 @@ namespace AFModLoader.Installer.Core
             }
             catch (OperationCanceledException)
             {
-                throw new InstallerException("Cancelled. Nothing was changed in the game folder.");
+                WasCancelled = true;
+                throw new InstallerException("Cancelled. The game folder was not changed.");
             }
             catch (Exception ex)
             {
@@ -206,34 +278,58 @@ namespace AFModLoader.Installer.Core
             }
         }
 
+        private static GameStatus Problem(StatusKind kind, GameFolder game, string title, string detail)
+        {
+            return new GameStatus
+            {
+                Kind = kind,
+                Title = title,
+                Detail = detail,
+                Root = game.Root,
+                ModsDir = game.ModsDir,
+            };
+        }
+
+        private static string ForeignDetail(string found, GameFolder game)
+        {
+            return "Found " + found.Substring(game.Win64.Length).TrimStart('\\') + " in " + game.Win64 + ", and this installer never changes it. "
+                + "To use AF Mod Loader, delete dwmapi.dll and the ue4ss folder there by hand, then run Install again.";
+        }
+
         private static string ForeignMessage(string found, GameFolder game)
         {
-            return "Another UE4SS is already in this game (found " + found + "), and this installer never changes it. "
-                + "To use AF Mod Loader, delete dwmapi.dll and the ue4ss folder in " + game.Win64 + " by hand, then run Install again.";
+            return "Another UE4SS is already in this game. " + ForeignDetail(found, game);
         }
 
         private void InstallCore(string root, bool enableConsole, CancellationToken cancel, Action markChanged)
         {
+            // Nothing is written until the download is verified, so the whole run up to there can be cancelled.
+            canCancel = true;
             GameFolder game = GameFolder.Open(root, true, true);
             Say("Game folder: " + game.Root);
             EnsureClosed(game);
             InstallManifest previous = ReadOurManifestOrNone(game);
             game.EnsureNoLinks();
+            cancel.ThrowIfCancellationRequested();
 
             Ue4ssPin pin = options.Pin;
             string temp = Path.GetTempFileName();
             try
             {
                 Say("Temporary download file: " + temp + " (deleted when the install ends)");
-                canCancel = true;
                 options.Downloader.Download(
                     pin.Url,
                     temp,
                     pin.Size,
-                    (done, total) => progress(total > 0 ? (int)(done * 60 / total) : 0),
+                    (done, total) =>
+                    {
+                        progress(total > 0 ? (int)(done * 60 / total) : 0);
+                        step("Downloading UE4SS (" + Ue4ssPin.FormatMegabytes(done) + " of " + Ue4ssPin.FormatMegabytes(pin.Size) + " MB)");
+                    },
                     log,
                     cancel);
                 progress(60);
+                step("Checking the download");
                 VerifyDownload(temp, pin);
                 canCancel = false;
 
@@ -444,6 +540,8 @@ namespace AFModLoader.Installer.Core
                     options.BeforeWriteFile(i, file.Path);
                 }
 
+                step("Writing files (" + (i + 1) + " of " + plan.Count + ")");
+
                 string target = PathRules.Resolve(game.Win64, file.Path);
                 CheckTarget(game, file.Path);
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
@@ -542,6 +640,7 @@ namespace AFModLoader.Installer.Core
             var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < managed.Count; i++)
             {
+                step("Removing files (" + (i + 1) + " of " + managed.Count + ")");
                 DeleteFile(game, managed[i]);
                 for (string dir = Path.GetDirectoryName(PathRules.Resolve(game.Win64, managed[i]));
                     dir != null && dir.Length > ue4ss.Length;
