@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AFModLoader.Installer.Core
 {
     /// <summary>The one UE4SS build this installer installs. Changing it is its own reviewed change.</summary>
@@ -26,6 +28,18 @@ namespace AFModLoader.Installer.Core
 
         /// <summary>Lowercase hex.</summary>
         public string Sha256 { get; }
+
+        /// <summary>The size for the window, in decimal megabytes: 8.7 MB.</summary>
+        public string SizeText
+        {
+            get { return FormatMegabytes(Size) + " MB"; }
+        }
+
+        /// <summary>Bytes as decimal megabytes with one decimal, always with a point (3.2).</summary>
+        public static string FormatMegabytes(long bytes)
+        {
+            return (bytes / 1000000.0).ToString("0.0", CultureInfo.InvariantCulture);
+        }
 
         /// <summary>First and last four characters, for the window.</summary>
         public string ShortHash
