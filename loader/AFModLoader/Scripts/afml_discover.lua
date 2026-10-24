@@ -74,7 +74,12 @@ function discover.discover(root)
     end
   end
   if not modsFolder then
-    return { ok = false, error = "mods folder not found at " .. rootPath .. "\\mods, reinstall AF Mod Loader" }
+    return {
+      ok = false,
+      error = "mods folder not found at "
+        .. rootPath
+        .. "\\mods: create that folder (and mods\\.data in it), or reinstall AF Mod Loader",
+    }
   end
 
   local candidates, skipped = {}, {}
