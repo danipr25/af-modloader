@@ -2,7 +2,7 @@
 
 All notable changes to AF Mod Loader. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). While the version is 0.x, a new minor version may break mods and says how here.
 
-## [0.1.4] - Unreleased
+## [0.1.4] - 2026-10-24
 
 - Releases also include `AFModLoader-<version>.zip`, the loader folder alone, for players who already have UE4SS. The README explains the manual install.
 - When the `mods` folder is missing, the loader's log line now says to create it (or reinstall).

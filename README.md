@@ -2,7 +2,7 @@
 
 A mod loader for **Alchemy Factory**. Install it once, then put mods in a `mods` folder inside the game folder and start the game from Steam as usual. It runs on [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) (MIT), which the installer downloads from its official GitHub release. UE4SS is not included in this repository.
 
-Unofficial fan project. Alchemy Factory belongs to its developers. Status: version 0.1.1. See the [changelog](CHANGELOG.md).
+Unofficial fan project. Alchemy Factory belongs to its developers. Status: version 0.1.4. See the [changelog](CHANGELOG.md).
 
 ## Install
 
