@@ -21,7 +21,7 @@ Verified in game with the sample mods in `tests/fixtures/mods/`: loading in depe
 └─ AlchemyFactory\ ...
 ```
 
-`<game folder>` is the folder Steam installs the game in, for example `C:\Program Files (x86)\Steam\steamapps\common\Alchemy Factory`. The `mods` and `mods\.data` folders are created when AF Mod Loader is installed.
+`<game folder>` is the folder Steam installs the game in, for example `C:\Program Files (x86)\Steam\steamapps\common\Alchemy Factory`. The `mods` and `mods\.data` folders are created by the installer, or by hand with a manual install (see the README).
 
 - Each mod is one folder in `mods`. The folder name doesn't have to match the mod id.
 - A folder ending in `.disabled` is not loaded; the log says how to turn it back on.
