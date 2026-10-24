@@ -53,10 +53,33 @@ jobs:
       - name: Build
         run: lua scripts/build-installer.lua
 
+      # The loader folder alone, for players who already have UE4SS and install by hand (README, Manual install).
+      # The zip holds the AFModLoader folder itself, enabled.txt included, as it goes into ue4ss\Mods.
+      # .NET's ZipFile keeps the base folder and writes / separators; the check below makes sure the zip holds exactly
+      # the tracked files of the loader folder, so a different runner or module cannot ship a broken zip.
+      - name: Zip the loader
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = Join-Path $PWD.Path "dist/AFModLoader-$env:VERSION.zip"
+          [IO.Compression.ZipFile]::CreateFromDirectory((Resolve-Path loader/AFModLoader).Path, $zip, 'Optimal', $true)
+          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+          try { $entries = @($archive.Entries | ForEach-Object { $_.FullName }) } finally { $archive.Dispose() }
+          $bad = @($entries | Where-Object { $_.Contains('\') })
+          if ($bad.Count -gt 0) { throw "The loader zip has entries with backslashes: $($bad -join ', ')" }
+          $expected = @(git ls-files loader/AFModLoader | ForEach-Object { $_.Substring('loader/'.Length) } | Sort-Object)
+          $got = @($entries | Where-Object { -not $_.EndsWith('/') } | Sort-Object)
+          if (($expected -join "`n") -ne ($got -join "`n")) {
+            throw "The loader zip does not match loader/AFModLoader.`nExpected:`n$($expected -join "`n")`nGot:`n$($got -join "`n")"
+          }
+          $entries
+
       - name: Write the checksums
         run: |
-          $file = Join-Path $PWD.Path "dist/AFModLoader-Installer-$env:VERSION.exe"
-          if (-not (Test-Path $file)) { throw "The build did not produce $file." }
+          foreach ($name in @("AFModLoader-Installer-$env:VERSION.exe", "AFModLoader-$env:VERSION.zip")) {
+            $file = Join-Path $PWD.Path "dist/$name"
+            if (-not (Test-Path $file)) { throw "The build did not produce $file." }
+          }
           $lines = Get-ChildItem dist -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | Sort-Object Name | ForEach-Object {
             '{0}  {1}' -f (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower(), $_.Name
           }
@@ -83,7 +106,7 @@ jobs:
           if (-not $changes) { throw "The CHANGELOG.md section for $env:VERSION is empty." }
 
           $sums = (Get-Content -Raw dist/SHA256SUMS.txt).Trim()
-          $first = (Get-ChildItem dist -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | Select-Object -First 1).Name
+          $first = "AFModLoader-Installer-$env:VERSION.exe"
           $repo = $env:GITHUB_REPOSITORY
           $verify = @'
           ## Verify
