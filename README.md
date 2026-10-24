@@ -24,7 +24,7 @@ To uninstall, run the installer again and click **Remove**. It deletes only what
 If you already run UE4SS on this game, installed without this installer, you can skip the installer. The loader is a regular UE4SS Lua mod. If you used the installer, keep updating with it instead: it does not take over files it did not write. The game folder path must be plain ASCII (no accents or letters like `ñ`): UE4SS cannot open files under other paths, and the installer checks this for you.
 
 1. Close the game.
-2. Download `AFModLoader-<version>.zip` from [Releases](https://github.com/danipr25/af-modloader/releases) (releases after 0.1.1) and extract it into `<game>\AlchemyFactory\Binaries\Win64\ue4ss\Mods`, so you get `ue4ss\Mods\AFModLoader\enabled.txt`. The empty `enabled.txt` makes UE4SS start it; there is nothing to add to `mods.txt`.
+2. Download `AFModLoader-<version>.zip` from [Releases](https://github.com/danipr25/af-modloader/releases) (from 0.1.4 on) and extract it into `<game>\AlchemyFactory\Binaries\Win64\ue4ss\Mods`, so you get `ue4ss\Mods\AFModLoader\enabled.txt`. The empty `enabled.txt` makes UE4SS start it; there is nothing to add to `mods.txt`.
 3. Create the folders `<game>\mods` and `<game>\mods\.data`. The loader does not create them, and without `mods` it loads nothing (the UE4SS log says `mods folder not found`).
 4. Put mods in `<game>\mods`, one folder per mod.
 
